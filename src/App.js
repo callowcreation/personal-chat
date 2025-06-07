@@ -1,4 +1,4 @@
-import React from 'react';
+import Reac, { use, useState } from 'react';
 import './App.css';
 
 import firebase from 'firebase/compat/app';
@@ -70,31 +70,53 @@ function SignOut() {
 function ChatRoom() {
     const messagesRef = firestore.collection('messages');
     const query = messagesRef.orderBy('createdAt').limit(25);
-    const [messages] = useCollectionData(query, { idField: 'id' });
+    const [messages, loading, error] = useCollectionData(query, { idField: 'id' });
 
+    const [formValue, setFormValue] = useState('');
+
+    const sendMessage = async (e) => {
+        e.preventDefault();
+        const { uid, photoURL } = auth.currentUser;
+    
+        await messagesRef.add({
+            text: formValue,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            uid,
+            photoURL: getPhotoUrl(photoURL)
+        });
+
+        setFormValue('');
+    }       
     return (
         <>
             <div>
-                {messages && messages.map(msg => {
-                    console.log('Message:', msg);
-                    return msg ? <ChatMessage key={msg.id} message={msg} /> : <p key={msg.id}>'not loaded yet'</p>
-                })}
+                {loading && <p>Loading messages...</p>}
+                {error && <p>Error loading messages: {error.message}</p>}
+                {messages?.map(msg => (<ChatMessage key={msg.id} message={msg} />))}
             </div>
+            <form onSubmit={sendMessage}>
+                <input value={formValue} onChange={(e) => setFormValue(e.target.value)} />
+                <button type="submit">Send</button>
+            </form>
             <SignOut />
         </>
     );
+}
 
-    function ChatMessage(props) {
-        const { text, uid, photoURL } = props.message;
-        const messageClass = uid === auth.currentUser.uid ? 'sent' : 'received';
+function ChatMessage(props) {
+    const { text, uid, photoURL } = props.message;
+    const messageClass = uid === auth.currentUser.uid ? 'sent' : 'received';
 
-        return (
-            <div className={`message ${messageClass}`}>
-                <img src={photoURL || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'} alt="User Avatar" />
-                <p>{text}</p>
-            </div>
-        );
-    }
+    return (
+        <div className={`message ${messageClass}`}>
+            <img src={getPhotoUrl(photoURL)} alt="User Avatar" />
+            <p>{text}</p>
+        </div>
+    );
+}
+
+function getPhotoUrl(photoURL) {
+    return photoURL || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
 }
 
 export default App;
