@@ -64,11 +64,9 @@ function SignIn() {
 
 function SignOut() {
     return (
-        <div>
-            <button onClick={() => auth.signOut()}>
-                Sign Out
-            </button>
-        </div>
+        <button type='button' onClick={() => auth.signOut()} style={{ marginLeft: '10px' }}>
+            Sign Out
+        </button>
     )
 }
 
@@ -82,18 +80,23 @@ function ChatRoom() {
 
     const sendMessage = async (e) => {
         e.preventDefault();
-        const { uid, photoURL } = auth.currentUser;
+        try {            
+            const { uid, photoURL } = auth.currentUser;
+        
+            await messagesRef.add({
+                text: formValue,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                uid,
+                photoURL: getPhotoUrl(photoURL)
+            });
     
-        await messagesRef.add({
-            text: formValue,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            uid,
-            photoURL: getPhotoUrl(photoURL)
-        });
-
-        setFormValue('');
-
-        dummy.current.scrollIntoView({ behavior: 'smooth' });
+            setFormValue('');
+    
+            dummy.current.scrollIntoView({ behavior: 'smooth' });
+        } catch (error) {
+            console.error('Error sending message:', error);
+            return;
+        }
     }       
     return (
         <>
@@ -106,8 +109,8 @@ function ChatRoom() {
             <form onSubmit={sendMessage}>
                 <input value={formValue} onChange={(e) => setFormValue(e.target.value)} />
                 <button type="submit">Send</button>
+                <SignOut />
             </form>
-            <SignOut />
         </>
     );
 }
