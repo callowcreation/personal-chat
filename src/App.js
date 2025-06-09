@@ -1,4 +1,9 @@
-import React, { useState } from 'react';
+/*
+Credit: Fireship https://www.youtube.com/@Fireship
+Video: https://www.youtube.com/watch?v=zQyrwxMPm88
+*/
+
+import React, { useRef, useState } from 'react';
 import './App.css';
 
 import firebase from 'firebase/compat/app';
@@ -73,6 +78,7 @@ function ChatRoom() {
     const [messages, loading, error] = useCollectionData(query, { idField: 'id' });
 
     const [formValue, setFormValue] = useState('');
+    const dummy = useRef();
 
     const sendMessage = async (e) => {
         e.preventDefault();
@@ -86,6 +92,8 @@ function ChatRoom() {
         });
 
         setFormValue('');
+
+        dummy.current.scrollIntoView({ behavior: 'smooth' });
     }       
     return (
         <>
@@ -93,6 +101,7 @@ function ChatRoom() {
                 {loading && <p>Loading messages...</p>}
                 {error && <p>Error loading messages: {error.message}</p>}
                 {messages?.map(msg => (<ChatMessage key={msg.id} message={msg} />))}
+                <div ref={dummy}></div>
             </div>
             <form onSubmit={sendMessage}>
                 <input value={formValue} onChange={(e) => setFormValue(e.target.value)} />
