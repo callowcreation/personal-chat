@@ -128,7 +128,7 @@ function ChatRoom() {
         inputRef.current.focus();
     }
 
-    const postMessage = (e) => {
+    /*const postMessage = (e) => {
         e.preventDefault();
         if (auth.currentUser && formValue.trim() !== '') {
             const { uid, photoURL } = auth.currentUser;
@@ -145,7 +145,7 @@ function ChatRoom() {
             setFormValue('');
             inputRef.current.focus();
         }
-    }
+    }*/
     
     return (
         <>
