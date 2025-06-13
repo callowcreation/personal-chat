@@ -78,18 +78,18 @@ function SignOut() {
 }
 
 function ChatRoom() {
-    const messagesRef = firestore.collection('messages');
-    const query = messagesRef.orderBy('createdAt').limitToLast(25);//.limit(25);
+    const messagesCollection = firestore.collection('messages');
+    const query = messagesCollection.orderBy('createdAt').limitToLast(25);//.limit(25);
     const [messages, loading, error] = useCollectionData(query, { idField: 'id' });
 
     const [formValue, setFormValue] = useState('');
 
-    const dummy = useRef();
+    const scrollToBottomRef = useRef();
     const inputRef = useRef();
     
     const scrollToBottom = () => {
-        if (dummy.current) {
-            dummy.current.scrollIntoView({ behavior: 'smooth' });
+        if (scrollToBottomRef.current) {
+            scrollToBottomRef.current.scrollIntoView({ behavior: 'smooth' });
         }
     }
 
@@ -114,9 +114,23 @@ function ChatRoom() {
     const sendMessage = async (e) => {
         e.preventDefault();
         if (auth.currentUser && formValue.trim() !== '') {
+            if(formValue.startsWith(':') && formValue.length > 1) {
+                const command = formValue.slice(1).trim();
+                if (command === 'clear') {
+                    await messagesCollection.get().then(snapshot => {
+                        snapshot.forEach(doc => doc.ref.delete());
+                    });
+                    setFormValue('');
+                    return;
+                } else {
+                    alert(`Unknown command: ${command}`);
+                    setFormValue('');
+                    return;
+                }
+            }
             const { uid, photoURL } = auth.currentUser;
 
-            await messagesRef.add({
+            await messagesCollection.add({
                 text: formValue,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 uid,
@@ -125,7 +139,7 @@ function ChatRoom() {
 
             setFormValue('');
         }
-        inputRef.current.focus();
+        focusOnInput();
     }
 
     /*const postMessage = (e) => {
@@ -153,7 +167,7 @@ function ChatRoom() {
                 {loading && <p>Loading messages...</p>}
                 {error && <p>Error loading messages: {error.message}</p>}
                 {messages?.map((msg, idx) => (<ChatMessage key={idx} message={msg} />))}
-                <div ref={dummy} style={{height: '40px', width: '100%'}}></div>
+                <div ref={scrollToBottomRef} style={{height: '40px', width: '100%'}}></div>
             </main>
             <form onSubmit={sendMessage}>
                 <input ref={inputRef} value={formValue} onChange={(e) => setFormValue(e.target.value)} />
