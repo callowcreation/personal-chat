@@ -3,7 +3,7 @@ Credit: Fireship https://www.youtube.com/@Fireship
 Video: https://www.youtube.com/watch?v=zQyrwxMPm88
 */
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './App.css';
 
 import firebase from 'firebase/compat/app';
@@ -26,7 +26,14 @@ const auth = firebase.auth();
 const firestore = firebase.firestore();
 
 function App() {
-    const [user] = useAuthState(auth);
+    const [user, loading, error] = useAuthState(auth);
+
+    if (loading) {
+        return <p>Loading user...</p>;
+    }
+    if (error) {
+        return <p>Error: {error.message}</p>;
+    }
 
     return (
         <div className="App">
@@ -72,42 +79,84 @@ function SignOut() {
 
 function ChatRoom() {
     const messagesRef = firestore.collection('messages');
-    const query = messagesRef.orderBy('createdAt').limit(25);
+    const query = messagesRef.orderBy('createdAt').limitToLast(25);//.limit(25);
     const [messages, loading, error] = useCollectionData(query, { idField: 'id' });
 
     const [formValue, setFormValue] = useState('');
+
     const dummy = useRef();
+    const inputRef = useRef();
+    
+    const scrollToBottom = () => {
+        if (dummy.current) {
+            dummy.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
+    const focusOnInput = () => {
+        if (inputRef.current) {
+            inputRef.current.focus();
+        }
+    }
+
+    useEffect(() => {
+        scrollToBottom();
+        focusOnInput();
+    }, [messages]);
+
+    useEffect(() => {
+        const unsubscribe = firestore.collection('messages').onSnapshot(() => {
+            scrollToBottom();
+        });
+        return () => unsubscribe();
+    }, []);
 
     const sendMessage = async (e) => {
         e.preventDefault();
-        try {            
+        if (auth.currentUser && formValue.trim() !== '') {
             const { uid, photoURL } = auth.currentUser;
-        
+
             await messagesRef.add({
                 text: formValue,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 uid,
                 photoURL: getPhotoUrl(photoURL)
             });
-    
+
             setFormValue('');
-    
-            dummy.current.scrollIntoView({ behavior: 'smooth' });
-        } catch (error) {
-            console.error('Error sending message:', error);
-            return;
         }
-    }       
+        inputRef.current.focus();
+    }
+
+    const postMessage = (e) => {
+        e.preventDefault();
+        if (auth.currentUser && formValue.trim() !== '') {
+            const { uid, photoURL } = auth.currentUser;
+
+            const payload = {
+                text: formValue,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                uid,
+                photoURL: getPhotoUrl(photoURL)
+            };
+
+            
+
+            setFormValue('');
+            inputRef.current.focus();
+        }
+    }
+    
     return (
         <>
-            <div>
+            <main>
                 {loading && <p>Loading messages...</p>}
                 {error && <p>Error loading messages: {error.message}</p>}
-                {messages?.map(msg => (<ChatMessage key={msg.id} message={msg} />))}
-                <div ref={dummy}></div>
-            </div>
+                {messages?.map((msg, idx) => (<ChatMessage key={idx} message={msg} />))}
+                <div ref={dummy} style={{height: '40px', width: '100%'}}></div>
+            </main>
             <form onSubmit={sendMessage}>
-                <input value={formValue} onChange={(e) => setFormValue(e.target.value)} />
+                <input ref={inputRef} value={formValue} onChange={(e) => setFormValue(e.target.value)} />
                 <button type="submit">Send</button>
                 <SignOut />
             </form>
