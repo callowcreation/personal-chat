@@ -54,7 +54,6 @@ function SignIn() {
             .then((result) => {
                 // This gives you a Google Access Token. You can use it to access the Google API.
                 //const token = result.credential.accessToken;
-                // The signed-in user info.
                 const user = result.user;
                 console.log('User signed in:', user);
             })
@@ -71,7 +70,7 @@ function SignIn() {
 
 function SignOut() {
     return (
-        <button type='button' onClick={() => auth.signOut()} style={{ marginLeft: '10px' }}>
+        <button className="sign-out" onClick={() => auth.signOut()}>
             Sign Out
         </button>
     )
@@ -86,7 +85,7 @@ function ChatRoom() {
 
     const scrollToBottomRef = useRef();
     const inputRef = useRef();
-    
+
     const scrollToBottom = () => {
         if (scrollToBottomRef.current) {
             scrollToBottomRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -114,7 +113,7 @@ function ChatRoom() {
     const sendMessage = async (e) => {
         e.preventDefault();
         if (auth.currentUser && formValue.trim() !== '') {
-            if(formValue.startsWith(':') && formValue.length > 1) {
+            if (formValue.startsWith(':') && formValue.length > 1) {
                 const command = formValue.slice(1).trim();
                 if (command === 'clear') {
                     await messagesCollection.get().then(snapshot => {
@@ -160,18 +159,18 @@ function ChatRoom() {
             inputRef.current.focus();
         }
     }*/
-    
+
     return (
         <>
             <main>
                 {loading && <p>Loading messages...</p>}
                 {error && <p>Error loading messages: {error.message}</p>}
                 {messages?.map((msg, idx) => (<ChatMessage key={idx} message={msg} />))}
-                <div ref={scrollToBottomRef} style={{height: '40px', width: '100%'}}></div>
+                <span ref={scrollToBottomRef}></span>
             </main>
             <form onSubmit={sendMessage}>
                 <input ref={inputRef} value={formValue} onChange={(e) => setFormValue(e.target.value)} />
-                <button type="submit">Send</button>
+                <button type="submit" disabled={!formValue.trim()}>Send</button>
                 <SignOut />
             </form>
         </>
